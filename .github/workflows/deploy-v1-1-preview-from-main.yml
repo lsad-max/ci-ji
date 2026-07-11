@@ -1,0 +1,91 @@
+name: Deploy 词迹 v1.1 Preview from Main
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/deploy-v1-1-preview-from-main.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy-preview:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}preview-v1-1/
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: production-source
+
+      - name: Checkout preview branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/v1.1-dual-accent-audio
+          path: preview-source
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Prepare production and preview site
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf site
+          mkdir -p site
+
+          unzip -q production-source/site.zip -d site
+          mkdir -p site/preview-v1-1
+          unzip -q preview-source/site.zip -d site/preview-v1-1
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path("site/preview-v1-1")
+          old = b"/ci-ji/"
+          new = b"/ci-ji/preview-v1-1/"
+          text_suffixes = {
+              ".html", ".js", ".css", ".json", ".webmanifest",
+              ".txt", ".svg", ".xml", ".map"
+          }
+
+          for path in root.rglob("*"):
+              if not path.is_file() or path.suffix.lower() not in text_suffixes:
+                  continue
+              data = path.read_bytes()
+              if old in data:
+                  path.write_bytes(data.replace(old, new))
+          PY
+
+          touch site/.nojekyll
+          touch site/preview-v1-1/.nojekyll
+
+          test -f site/index.html
+          test -f site/preview-v1-1/index.html
+          test -f site/preview-v1-1/manifest.webmanifest
+          test -f site/preview-v1-1/sw.js
+
+          audio_count=$(find site/preview-v1-1 -type f -name '*.mp3' | wc -l)
+          echo "Preview MP3 count: ${audio_count}"
+          test "${audio_count}" -eq 262
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+      - name: Deploy preview to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
