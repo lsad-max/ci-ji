@@ -1,0 +1,48 @@
+name: Deploy 词迹 to GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "site.zip"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Extract production site
+        run: |
+          rm -rf site
+          mkdir site
+          unzip -q site.zip -d site
+          test -f site/index.html
+          test -f site/manifest.webmanifest
+          test -f site/sw.js
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
