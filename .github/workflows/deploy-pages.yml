@@ -3,6 +3,9 @@ name: Deploy 词迹 to GitHub Pages
 on:
   push:
     branches: ["main"]
+    paths:
+      - "site.zip"
+      - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -11,8 +14,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: pages-production
+  cancel-in-progress: false
 
 jobs:
   deploy:
