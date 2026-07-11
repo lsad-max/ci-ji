@@ -13,8 +13,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: pages-preview-v1-1
+  cancel-in-progress: false
 
 jobs:
   deploy-preview:
