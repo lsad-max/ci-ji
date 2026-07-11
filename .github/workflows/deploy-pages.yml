@@ -3,8 +3,6 @@ name: Deploy 词迹 to GitHub Pages
 on:
   push:
     branches: ["main"]
-    paths:
-      - "site.zip"
   workflow_dispatch:
 
 permissions:
@@ -37,6 +35,7 @@ jobs:
           test -f site/index.html
           test -f site/manifest.webmanifest
           test -f site/sw.js
+          touch site/.nojekyll
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
